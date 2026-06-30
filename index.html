@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket Shopping Adventure – Matematik KSSR</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+            user-select: none;
+            overflow-x: hidden;
+        }
+        /* Premium 3D Glassmorphism & Cartoony Shadows */
+        .card-3d {
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px solid #f0fdf4;
+            box-shadow: 0 12px 0 #cbd5e1, 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+            transition: all 0.2s ease;
+        }
+        .btn-3d-green {
+            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+            box-shadow: 0 8px 0 #15803d, 0 12px 20px rgba(34, 197, 94, 0.3);
+            text-shadow: 1px 2px 0px rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .btn-3d-green:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #15803d, 0 4px 10px rgba(34, 197, 94, 0.3);
+        }
+        .btn-3d-blue {
+            background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+            box-shadow: 0 8px 0 #1d4ed8, 0 12px 20px rgba(59, 130, 246, 0.3);
+            text-shadow: 1px 2px 0px rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .btn-3d-blue:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #1d4ed8, 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+        /* Custom Keyframe Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-1deg); }
+            75% { transform: translateX(10px) rotate(1deg); }
+        }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-12px) scale(1.03); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 2.5s infinite ease-in-out; }
+        /* Confetti Canvas */
+        #confetti {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100; display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4">
+
+    <canvas id="confetti"></canvas>
+
+    <header class="w-full max-w-5xl bg-amber-400 border-4 border-amber-500 rounded-2xl p-3 flex flex-wrap items-center justify-between shadow-lg gap-3 z-10">
+        <div class="flex items-center gap-2 bg-amber-500/30 px-3 py-1.5 rounded-xl border border-amber-600/20">
+            <i class="fa-solid fa-user-circle text-2xl text-white"></i>
+            <span id="player-display-name" class="text-white font-bold text-sm sm:text-base">Pemain Baru</span>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
+                <i class="fa-solid fa-star text-amber-500 text-xl animate-spin-slow"></i>
+                <span id="stat-stars" class="font-black text-amber-700 text-lg">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
+                <i class="fa-solid fa-coins text-yellow-500 text-xl animate-bounce"></i>
+                <span id="stat-coins" class="font-black text-yellow-700 text-lg">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
+                <i class="fa-solid fa-trophy text-orange-500 text-xl"></i>
+                <span id="stat-score" class="font-black text-orange-700 text-lg">0</span>
+            </div>
+        </div>
+        <div class="bg-emerald-500 text-white font-black px-4 py-2 rounded-xl shadow-md border-b-4 border-emerald-700 text-sm sm:text-base">
+            Tahap: <span id="stat-level-name">1 (Tambah)</span>
+        </div>
+    </header>
+
+    <div class="w-full max-w-5xl mt-2 px-1">
+        <div class="w-full bg-slate-200 rounded-full h-4 p-0.5 border border-slate-300 shadow-inner">
+            <div id="game-progress-bar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-500" style="width: 10%"></div>
+        </div>
+    </div>
+
+    <main id="main-stage" class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center my-4 relative">
+        <div id="screen-auth" class="card-3d rounded-3xl p-6 sm:p-8 w-full max-w-md text-center flex flex-col gap-5 border-t-8 border-t-blue-400">
+            <div class="animate-bounce-slow text-5xl sm:text-6xl text-blue-500"><i class="fa-solid fa-basket-shopping"></i></div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-700 leading-tight">Supermarket Shopping Adventure</h1>
+            <p class="text-slate-500 text-xs sm:text-sm">Syllabus Matematik KSSR KPM Terbaharu</p>
+            
+            <div class="text-left mt-2">
+                <label class="block text-sm font-bold text-slate-600 mb-1 ml-1"><i class="fa-solid fa-user-tag mr-1 text-blue-400"></i> Nama Murid</label>
+                <input type="text" id="input-student-name" placeholder="Masukkan nama penuh anda..." class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 font-bold text-slate-700 transition shadow-inner">
+            </div>
+
+            <button onclick="startGameSession()" class="btn-3d-green w-full py-3.5 text-white font-black text-xl rounded-2xl cursor-pointer">
+                MULA BERMAIN <i class="fa-solid fa-play ml-1"></i>
+            </button>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-5xl text-center pb-2 text-slate-400 text-xs font-semibold">
+        &copy; 2026 Matematik KSSR Malaysia – Premium Educational Platform
+    </footer>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, delay=0) {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            }, delay * 1000);
+        }
+        function soundClick() { playTone(400, 'sine', 0.1); }
+        function soundCorrect() {
+            playTone(523.25, 'triangle', 0.15, 0);
+            playTone(659.25, 'triangle', 0.15, 0.1);
+            playTone(783.99, 'triangle', 0.15, 0.2);
+            playTone(1046.50, 'triangle', 0.3, 0.3);
+        }
+        function soundWrong() {
+            playTone(180, 'sawtooth', 0.3, 0);
+            playTone(130, 'sawtooth', 0.4, 0.15);
+        }
+        function soundCheckout() {
+            playTone(880, 'sine', 0.05, 0);
+            playTone(1760, 'sine', 0.1, 0.05);
+        }
+    </script>
+
+    <script>
+        // Firebase Configuration integration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-tpcypXIgAsT-IdxOdFaeN4iO7vn5j1w",
+            authDomain: "mathboost-game.firebaseapp.com",
+            databaseURL: "https://mathboost-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "mathboost-game",
+            storageBucket: "mathboost-game.firebasestorage.app",
+            messagingSenderId: "1069651305181",
+            appId: "1:1069651305181:web:e990d4f994e2619b53b134"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Game State Core
+        let gameState = {
+            playerName: "Anonym",
+            score: 0,
+            coins: 0,
+            stars: 0,
+            currentLevel: 1,
+            subQuestionIndex: 1,
+            maxQuestionsPerLevel: 3,
+            currentMission: {},
+            selectedItemsInCart: []
+        };
+
+        // KSSR Levels Configuration Meta
+        const levelsMeta = {
+            1: { name: "Penambahan Mudah", type: "add" },
+            2: { name: "Penolakan Wang", type: "sub" },
+            3: { name: "Pendaraban Kuantiti", type: "mul" },
+            4: { name: "Pembahagian Runcit", type: "div" },
+            5: { name: "Pengurusan Wang RM", type: "money" },
+            6: { name: "Pecahan Supermarket", type: "fraction" },
+            7: { name: "Perpuluhan Kilogram", type: "decimal" },
+            8: { name: "Diskaun Hebat", type: "discount" },
+            9: { name: "Operasi Bergabung", type: "mixed" },
+            10: { name: "Cabaran Super KSSR", type: "challenge" }
+        };
+
+        // Premium Content Stock Product Array
+        const productsStock = [
+            { id: 1, name: "Epal Merah", price: 2.00, unit: "biji", icon: "🍎", category: "Buah" },
+            { id: 2, name: "Pisang Mas", price: 5.00, unit: "sisir", icon: "🍌", category: "Buah" },
+            { id: 3, name: "Tembikai", price: 12.00, unit: "biji", icon: "🍉", category: "Buah" },
+            { id: 4, name: "Susu Segar", price: 6.00, unit: "kotak", icon: "🥛", category: "Tenusu" },
+            { id: 5, name: "Roti Putih", price: 3.50, unit: "peket", icon: "🍞", category: "Bakeri" },
+            { id: 6, name: "Beras Wangi", price: 28.00, unit: "guni", icon: "🌾", category: "Asas" },
+            { id: 7, name: "Telur Gred A", price: 14.00, unit: "papan", icon: "🥚", category: "Asas" },
+            { id: 8, name: "Ayam Segar", price: 18.00, unit: "ekor", icon: "🍗", category: "Lauk" },
+            { id: 9, name: "Ikan Jenahak", price: 22.00, unit: "kg", icon: "🐟", category: "Lauk" },
+            { id: 10, name: "Coklat Bar", price: 4.50, unit: "bar", icon: "🍫", category: "Snek" },
+            { id: 11, name: "Biskut Merdeka", price: 8.00, unit: "tin", icon: "🍪", category: "Snek" },
+            { id: 12, name: "Jus Oren", price: 7.20, unit: "botol", icon: "🧃", category: "Minuman" },
+            { id: 13, name: "Buku Nota", price: 3.00, unit: "buku", icon: "📓", category: "Sekolah" },
+            { id: 14, name: "Pensil Warna", price: 10.00, unit: "kotak", icon: "✏️", category: "Sekolah" },
+            { id: 15, name: "Beg Sekolah", price: 45.00, unit: "unit", icon: "🎒", category: "Sekolah" },
+            { id: 16, name: "Minyak Masak", price: 30.00, unit: "botol", icon: "🍾", category: "Asas" }
+        ];
+
+        // Confetti Generator System
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        let confettiPieces = [];
+        function initConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            confettiPieces = [];
+            for (let i = 0; i < 100; i++) {
+                confettiPieces.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    r: Math.random() * 6 + 4,
+                    d: Math.random() * canvas.height,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    tilt: Math.random() * 10 - 5,
+                    speed: Math.random() * 3 + 2
+                });
+            }
+        }
+        function drawConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            confettiPieces.forEach(p => {
+                ctx.beginPath();
+                ctx.lineWidth = p.r;
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+                ctx.stroke();
+                
+                p.y += p.speed;
+                p.tilt = Math.sin(p.y / 10) * 5;
+                
+                if (p.y < canvas.height) active = true;
+            });
+            if (active) requestAnimationFrame(drawConfetti);
+            else canvas.style.display = 'none';
+        }
+        function triggerConfettiBurst() {
+            canvas.style.display = 'block';
+            initConfetti();
+            drawConfetti();
+        }
+
+        // Dashboard Updates
+        function updateDashboardUI() {
+            document.getElementById('stat-stars').innerText = gameState.stars;
+            document.getElementById('stat-coins').innerText = gameState.coins;
+            document.getElementById('stat-score').innerText = gameState.score;
+            document.getElementById('stat-level-name').innerText = `${gameState.currentLevel} - ${levelsMeta[gameState.currentLevel].name}`;
+            
+            // Progress Calculation
+            let basePct = ((gameState.currentLevel - 1) * 10);
+            let subPct = ((gameState.subQuestionIndex - 1) / gameState.maxQuestionsPerLevel) * 10;
+            document.getElementById('game-progress-bar').style.width = `${Math.min(basePct + subPct, 100)}%`;
+        }
+
+        // Init Game Session
+        function startGameSession() {
+            soundClick();
+            const nameInput = document.getElementById('input-student-name').value.trim();
+            if(!nameInput) {
+                alert("Sila masukkan nama anda untuk merekodkan pengembaraan!");
+                return;
+            }
+            gameState.playerName = nameInput;
+            document.getElementById('player-display-name').innerText = nameInput;
+            
+            // Sync initial profile to Firebase Cloud
+            database.ref('players/' + nameInput.replace(/[.#$\[\]]/g, '_')).set({
+                nama: nameInput,
+                skor: 0,
+                syiling: 0,
+                bintang: 0,
+                tahapMaksimum: 1,
+                kemaskiniTerakhir: new Date().toISOString()
+            });
+
+            generateMission();
+        }
+
+        // Mission Builder Engine (Thousands of Combinations)
+        function generateMission() {
+            updateDashboardUI();
+            let levelType = levelsMeta[gameState.currentLevel].type;
+            let container = document.getElementById('main-stage');
+            
+            // Randomly pull items from pool
+            let itemsShuffled = [...productsStock].sort(() => 0.5 - Math.random());
+            let itemA = itemsShuffled[0];
+            let itemB = itemsShuffled[1];
+            let itemC = itemsShuffled[2];
+
+            let questionText = "";
+            let answersOptions = [];
+            let correctAnswer = 0;
+
+            switch(levelType) {
+                case "add":
+                    let qtyA = Math.floor(Math.random() * 3) + 1;
+                    let qtyB = Math.floor(Math.random() * 2) + 1;
+                    correctAnswer = (qtyA * itemA.price) + (qtyB * itemB.price);
+                    questionText = `Kira jumlah harga untuk <b>${qtyA} ${itemA.unit} ${itemA.name}</b> dan <b>${qtyB} ${itemB.unit} ${itemB.name}</b>.`;
+                    break;
+
+                case "sub":
+                    let budgetSub = 50;
+                    correctAnswer = budgetSub - itemC.price;
+                    questionText = `Anda membayar dengan wang kertas <b>RM${budgetSub}</b> untuk membeli 1 ${itemC.unit} ${itemC.name} (RM${itemC.price.toFixed(2)}). Berapakah baki wang anda?`;
+                    break;
+
+                case "mul":
+                    let multiplier = Math.floor(Math.random() * 4) + 3;
+                    correctAnswer = itemA.price * multiplier;
+                    questionText = `Ibu ingin membeli sebanyak <b>${multiplier} ${itemA.unit} ${itemA.name}</b>. Berapakah jumlah harga keseluruhan?`;
+                    break;
+
+                case "div":
+                    let groupCount = 2;
+                    let totalDivPrice = itemB.price * groupCount;
+                    correctAnswer = itemB.price;
+                    questionText = `Jumlah harga untuk ${groupCount} paket ${itemB.name} ialah <b>RM${totalDivPrice.toFixed(2)}</b>. Berapakah harga seunit?`;
+                    break;
+
+                case "money":
+                    let itemX = itemA;
+                    let itemY = itemB;
+                    correctAnswer = itemX.price + itemY.price;
+                    questionText = `Raju membeli ${itemX.name} (RM${itemX.price.toFixed(2)}) dan ${itemY.name} (RM${itemY.price.toFixed(2)}). Berapakah gabungan nilai wang wang yang diperlukan?`;
+                    break;
+
+                case "fraction":
+                    correctAnswer = itemC.price / 2;
+                    questionText = `Kedai memberikan diskaun separuh harga (<span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">1/2</span>) untuk 1 ${itemC.unit} ${itemC.name} (Asal: RM${itemC.price.toFixed(2)}). Berapakah harga baharu?`;
+                    break;
+
+                case "decimal":
+                    let weight = (Math.random() * 2 + 1.5).toFixed(1);
+                    correctAnswer = itemA.price * parseFloat(weight);
+                    questionText = `Kira kos bagi <b>${weight} kg</b> ${itemA.name} jika harganya ialah RM${itemA.price.toFixed(2)} sekilo.`;
+                    break;
+
+                case "discount":
+                    let pct = 10; 
+                    let discAmount = itemB.price * (pct / 100);
+                    correctAnswer = itemB.price - discAmount;
+                    questionText = `Produk ${itemB.name} berharga RM${itemB.price.toFixed(2)} mendapat potongan diskaun <b>10%</b>. Berapakah harga selepas potongan?`;
+                    break;
+
+                case "mixed":
+                    correctAnswer = (itemA.price * 2) - 3;
+                    questionText = `Beli 2 ${itemA.unit} ${itemA.name} kemudian tolak rebat kupon tunai bernilai <b>RM3.00</b>. Berapakah harga akhir?`;
+                    break;
+
+                case "challenge":
+                default:
+                    correctAnswer = itemA.price + itemB.price + itemC.price;
+                    questionText = `<b>Cabaran Trofi!</b> Berapakah jumlah harga bakul jika anda memasukkan ${itemA.name}, ${itemB.name}, dan ${itemC.name}?`;
+                    break;
+            }
+
+            // Standardize Answers Formulation
+            correctAnswer = parseFloat(parseFloat(correctAnswer).toFixed(2));
+            answersOptions.push(correctAnswer);
+            
+            while(answersOptions.length < 4) {
+                let dev = (Math.random() * 6 - 3).toFixed(2);
+                let fakeAns = parseFloat((correctAnswer + parseFloat(dev)).toFixed(2));
+                if(fakeAns > 0 && !answersOptions.includes(fakeAns)) {
+                    answersOptions.push(fakeAns);
+                }
+            }
+            answersOptions.sort(() => 0.5 - Math.random());
+
+            gameState.currentMission = {
+                text: questionText,
+                correct: correctAnswer,
+                items: [itemA, itemB, itemC]
+            };
+
+            // Render Dynamic Interface
+            container.innerHTML = `
+                <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                    <div class="md:col-span-2 flex flex-col gap-4">
+                        <div class="card-3d rounded-2xl p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-t-8 border-t-blue-500">
+                            <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Misi Pembelian ${gameState.subQuestionIndex}/${gameState.maxQuestionsPerLevel}</span>
+                            <h2 class="text-slate-700 font-medium text-lg sm:text-xl mt-3 leading-relaxed">${questionText}</h2>
+                        </div>
+
+                        <div class="bg-amber-100 border-4 border-amber-600/40 rounded-3xl p-4 shadow-inner">
+                            <div class="text-xs font-black text-amber-800/60 uppercase mb-3"><i class="fa-solid fa-store mr-1"></i> Rak Barangan Pasar Raya</div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                ${gameState.currentMission.items.map(prod => `
+                                    <div class="bg-white rounded-2xl p-3 border-2 border-slate-200 shadow-md text-center flex flex-col items-center justify-between hover:scale-105 transition duration-200">
+                                        <div class="text-4xl sm:text-5xl my-2">${prod.icon}</div>
+                                        <div class="font-bold text-slate-700 text-sm sm:text-base">${prod.name}</div>
+                                        <div class="bg-emerald-100 text-emerald-700 font-extrabold px-3 py-0.5 rounded-full text-xs sm:text-sm mt-1">RM ${prod.price.toFixed(2)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-4">
+                        <div class="card-3d rounded-2xl p-4 text-center bg-emerald-50 border-t-8 border-t-emerald-500 flex flex-col items-center">
+                            <div class="text-4xl animate-bounce-slow">👩‍💼</div>
+                            <div class="font-bold text-emerald-800 text-xs mt-1">Juruwang Comel</div>
+                            <p class="text-xs text-slate-500 italic mt-1">"Sila pilih jawapan yang betul pada skrin kaunter!"</p>
+                        </div>
+
+                        <div class="bg-slate-800 border-4 border-slate-900 rounded-3xl p-4 shadow-2xl">
+                            <div class="text-center text-cyan-400 font-mono text-xs tracking-widest uppercase mb-3"><i class="fa-solid fa-calculator mr-1"></i> Skrin Kaunter Pembayaran</div>
+                            <div class="grid grid-cols-1 gap-3">
+                                ${answersOptions.map(ans => `
+                                    <button onclick="checkAnswer(${ans}, this)" class="w-full py-3 bg-slate-700 border-b-4 border-slate-900 text-white font-black text-lg rounded-xl hover:bg-slate-600 active:bg-slate-800 transition text-left px-5 flex items-center justify-between cursor-pointer">
+                                        <span><i class="fa-solid fa-tag text-amber-400 mr-2 text-sm"></i> RM ${ans.toFixed(2)}</span>
+                                        <i class="fa-solid fa-chevron-right text-xs opacity-40"></i>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Action Check System
+        function checkAnswer(selectedVal, btnElement) {
+            if(selectedVal === gameState.currentMission.correct) {
+                soundCorrect();
+                triggerConfettiBurst();
+                
+                // Rewards Accumulation
+                gameState.score += 10;
+                gameState.coins += 5;
+                
+                // Graphic Feedbacks Overlay
+                btnElement.classList.remove('bg-slate-700', 'border-slate-900');
+                btnElement.classList.add('bg-emerald-500', 'border-emerald-700', 'scale-105');
+                
+                let feedbackBanner = document.createElement('div');
+                feedbackBanner.className = "fixed inset-0 bg-black/50 flex flex-col items-center justify-center z-50 animate-fade-in";
+                feedbackBanner.innerHTML = `
+                    <div class="bg-white rounded-3xl p-8 max-w-sm text-center border-4 border-emerald-500 shadow-2xl flex flex-col items-center gap-4 card-3d">
+                        <div class="text-6xl animate-bounce">🏆</div>
+                        <h1 class="text-3xl font-black text-emerald-600">🎉 TAHNIAH! 🎉</h1>
+                        <p class="text-xl font-bold text-slate-700">"${["Hebat!", "Syabas!", "Anda Bijak!", "Cemerlang!", "Teruskan!"][Math.floor(Math.random()*5)]}"</p>
+                        <div class="flex gap-4 text-sm font-bold text-slate-600 mt-2">
+                            <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full">+10 Mata</span>
+                            <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">+5 Syiling</span>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(feedbackBanner);
+
+                // Progressive Flow Controller
+                setTimeout(() => {
+                    feedbackBanner.remove();
+                    gameState.subQuestionIndex++;
+                    
+                    if(gameState.subQuestionIndex > gameState.maxQuestionsPerLevel) {
+                        gameState.stars++; // Level Completion Reward
+                        gameState.subQuestionIndex = 1;
+                        gameState.currentLevel++;
+                        
+                        if(gameState.currentLevel > 10) {
+                            showEndGameScreen();
+                            return;
+                        }
+                    }
+                    
+                    // Live Push to Firebase Database
+                    let safeKey = gameState.playerName.replace(/[.#$\[\]]/g, '_');
+                    database.ref('players/' + safeKey).update({
+                        skor: gameState.score,
+                        syiling: gameState.coins,
+                        bintang: gameState.stars,
+                        tahapMaksimum: gameState.currentLevel,
+                        kemaskiniTerakhir: new Date().toISOString()
+                    });
+
+                    generateMission();
+                }, 2000);
+
+            } else {
+                soundWrong();
+                btnElement.classList.add('animate-shake', 'bg-rose-500', 'border-rose-700');
+                setTimeout(() => {
+                    btnElement.classList.remove('animate-shake', 'bg-rose-500', 'border-rose-700');
+                }, 500);
+            }
+        }
+
+        // Ultimate End/Victory Game Engine Presentation Layout
+        function showEndGameScreen() {
+            soundCheckout();
+            let container = document.getElementById('main-stage');
+            
+            container.innerHTML = `
+                <div class="card-3d rounded-3xl p-8 w-full max-w-xl text-center border-t-8 border-t-yellow-400 bg-gradient-to-b from-amber-50 to-white flex flex-col items-center gap-6">
+                    <div class="text-7xl animate-pulse">👑</div>
+                    <h1 class="text-3xl font-black text-slate-800">Sijil Penghargaan Pasar Raya</h1>
+                    <p class="text-slate-600 font-medium">Syabas diucapkan kepada <b>${gameState.playerName}</b> kerana telah berjaya menamatkan semua modul pengiraan silabus KSSR Malaysia!</p>
+                    
+                    <div class="grid grid-cols-3 gap-4 w-full my-2">
+                        <div class="bg-orange-100/80 p-3 rounded-2xl border border-orange-200">
+                            <div class="text-xs text-orange-600 font-bold uppercase">Jumlah Skor</div>
+                            <div class="text-2xl font-black text-orange-700">${gameState.score}</div>
+                        </div>
+                        <div class="bg-yellow-100/80 p-3 rounded-2xl border border-yellow-200">
+                            <div class="text-xs text-yellow-600 font-bold uppercase">Peti Syiling</div>
+                            <div class="text-2xl font-black text-yellow-700">${gameState.coins}</div>
+                        </div>
+                        <div class="bg-amber-100/80 p-3 rounded-2xl border border-amber-200">
+                            <div class="text-xs text-amber-600 font-bold uppercase">Bintang KSSR</div>
+                            <div class="text-2xl font-black text-amber-700">${gameState.stars}</div>
+                        </div>
+                    </div>
+
+                    <div class="w-full bg-emerald-500 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-inner">
+                        <i class="fa-solid fa-circle-check"></i> Data pencapaian anda telah disegerakan ke Firebase Cloud!
+                    </div>
+
+                    <button onclick="location.reload()" class="btn-3d-blue w-full py-3.5 text-white font-black text-xl rounded-2xl cursor-pointer">
+                        MAIN SEMULA <i class="fa-solid fa-rotate-right ml-1"></i>
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
