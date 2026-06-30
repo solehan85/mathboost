@@ -49,6 +49,16 @@
             transform: translateY(6px);
             box-shadow: 0 2px 0 #1d4ed8, 0 4px 10px rgba(59, 130, 246, 0.3);
         }
+        .btn-3d-red {
+            background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+            box-shadow: 0 6px 0 #b91c1c, 0 8px 15px rgba(239, 68, 68, 0.3);
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .btn-3d-red:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b91c1c, 0 4px 8px rgba(239, 68, 68, 0.3);
+        }
         /* Custom Keyframe Animations */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -78,7 +88,7 @@
             <i class="fa-solid fa-user-circle text-2xl text-white"></i>
             <span id="player-display-name" class="text-white font-bold text-sm sm:text-base">Pemain Baru</span>
         </div>
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4 sm:gap-6">
             <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
                 <i class="fa-solid fa-star text-amber-500 text-xl"></i>
                 <span id="stat-stars" class="font-black text-amber-700 text-lg">0</span>
@@ -92,8 +102,13 @@
                 <span id="stat-score" class="font-black text-orange-700 text-lg">0</span>
             </div>
         </div>
-        <div class="bg-emerald-500 text-white font-black px-4 py-2 rounded-xl shadow-md border-b-4 border-emerald-700 text-sm sm:text-base">
-            Tahap: <span id="stat-level-name">1 (Tambah)</span>
+        <div class="flex items-center gap-2">
+            <div class="bg-emerald-500 text-white font-black px-4 py-2 rounded-xl shadow-md border-b-4 border-emerald-700 text-sm sm:text-base">
+                Tahap: <span id="stat-level-name">1</span>
+            </div>
+            <button id="btn-back-home" onclick="goBackToHome()" class="btn-3d-red hidden text-white font-black px-4 py-2 rounded-xl text-sm sm:text-base cursor-pointer">
+                <i class="fa-solid fa-house mr-1"></i> KEMBALI
+            </button>
         </div>
     </header>
 
@@ -280,6 +295,8 @@
             gameState.playerName = nameInput;
             document.getElementById('player-display-name').innerText = nameInput;
             
+            document.getElementById('btn-back-home').classList.remove('hidden');
+
             database.ref('players/' + nameInput.replace(/[.#$\[\]]/g, '_')).set({
                 nama: nameInput,
                 skor: 0,
@@ -290,6 +307,46 @@
             });
 
             generateMission();
+        }
+
+        function goBackToHome() {
+            soundClick();
+            if(confirm("Adakah anda pasti mahu keluar dan kembali ke laman utama? Kemajuan semasa pada tahap ini tidak akan disimpan.")) {
+                // Set semula parameter permainan ke asal
+                gameState = {
+                    playerName: "Anonym",
+                    score: 0,
+                    coins: 0,
+                    stars: 0,
+                    currentLevel: 1,
+                    subQuestionIndex: 1,
+                    maxQuestionsPerLevel: 3,
+                    currentMission: {},
+                    selectedItemsInCart: []
+                };
+
+                document.getElementById('player-display-name').innerText = "Pemain Baru";
+                document.getElementById('btn-back-home').classList.add('hidden');
+                updateDashboardUI();
+                
+                // Paparkan skrin pengesahan/log masuk asal semula
+                document.getElementById('main-stage').innerHTML = `
+                    <div id="screen-auth" class="card-3d rounded-3xl p-6 sm:p-8 w-full max-w-md text-center flex flex-col gap-5 border-t-8 border-t-blue-400">
+                        <div class="animate-bounce-slow text-5xl sm:text-6xl text-blue-500"><i class="fa-solid fa-basket-shopping"></i></div>
+                        <h1 class="text-2xl sm:text-3xl font-black text-slate-700 leading-tight">Supermarket Shopping Adventure</h1>
+                        <p class="text-slate-500 text-xs sm:text-sm">Syllabus Matematik KSSR KPM Terbaharu</p>
+                        
+                        <div class="text-left mt-2">
+                            <label class="block text-sm font-bold text-slate-600 mb-1 ml-1"><i class="fa-solid fa-user-tag mr-1 text-blue-400"></i> Nama Murid</label>
+                            <input type="text" id="input-student-name" placeholder="Masukkan nama penuh anda..." class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 font-bold text-slate-700 transition shadow-inner">
+                        </div>
+
+                        <button onclick="startGameSession()" class="btn-3d-green w-full py-3.5 text-white font-black text-xl rounded-2xl cursor-pointer">
+                            MULA BERMAIN <i class="fa-solid fa-play ml-1"></i>
+                        </button>
+                    </div>
+                `;
+            }
         }
 
         function generateMission() {
@@ -500,11 +557,10 @@
             answersOptions.push(correctAnswer);
             
             // Algoritma Penjanaan Jawapan Palsu Pintar & Logik KSSR
-            let originalSen = (correctAnswer % 1).toFixed(2); // Dapatkan komponen sen asal (e.g. 0.00 atau 0.50)
+            let originalSen = (correctAnswer % 1).toFixed(2); 
             let deviations = [-5.00, -2.00, -1.00, 1.00, 2.00, 5.00, 10.00];
             
             if (levelType === "fraction" || levelType === "decimal" || levelType === "discount") {
-                // Untuk tahap perpuluhan/pecahan, benarkan juga gangguan sen suku/separuh yang munasabah
                 deviations.push(-0.50, 0.50, -1.50, 1.50);
             }
 
@@ -512,9 +568,8 @@
                 let randomDev = deviations[Math.floor(Math.random() * deviations.length)];
                 let fakeAns = parseFloat((correctAnswer + randomDev).toFixed(2));
                 
-                // Jika sen asal adalah .00, pastikan jawapan palsu juga berakhir dengan .00 atau .50 yang kemas
                 if (parseFloat(originalSen) === 0 && (fakeAns % 0.5 !== 0)) {
-                    fakeAns = Math.floor(fakeAns); // Jadikan nombor bulat munasabah
+                    fakeAns = Math.floor(fakeAns); 
                 }
 
                 if(fakeAns > 0 && !answersOptions.includes(fakeAns)) {
@@ -522,7 +577,6 @@
                 }
             }
             
-            // Sekiranya senarai masih belum cukup akibat penapisan di atas, isikan secara munasabah
             while(answersOptions.length < 4) {
                 let fakeAns = parseFloat((correctAnswer + (Math.random() > 0.5 ? 3 : -3)).toFixed(0));
                 if (fakeAns > 0 && !answersOptions.includes(fakeAns)) {
@@ -645,9 +699,9 @@
             }
         }
 
-        // Ultimate End/Victory Game Engine Presentation Layout
         function showEndGameScreen() {
             soundCheckout();
+            document.getElementById('btn-back-home').classList.add('hidden');
             let container = document.getElementById('main-stage');
             
             container.innerHTML = `
