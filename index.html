@@ -80,7 +80,7 @@
         </div>
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
-                <i class="fa-solid fa-star text-amber-500 text-xl animate-spin-slow"></i>
+                <i class="fa-solid fa-star text-amber-500 text-xl"></i>
                 <span id="stat-stars" class="font-black text-amber-700 text-lg">0</span>
             </div>
             <div class="flex items-center gap-1.5 bg-white/90 px-3 py-1 rounded-full shadow-inner border border-amber-200">
@@ -158,7 +158,6 @@
     </script>
 
     <script>
-        // Firebase Configuration integration
         const firebaseConfig = {
             apiKey: "AIzaSyD-tpcypXIgAsT-IdxOdFaeN4iO7vn5j1w",
             authDomain: "mathboost-game.firebaseapp.com",
@@ -169,11 +168,9 @@
             appId: "1:1069651305181:web:e990d4f994e2619b53b134"
         };
         
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Game State Core
         let gameState = {
             playerName: "Anonym",
             score: 0,
@@ -186,7 +183,6 @@
             selectedItemsInCart: []
         };
 
-        // KSSR Levels Configuration Meta
         const levelsMeta = {
             1: { name: "Penambahan Mudah", type: "add" },
             2: { name: "Penolakan Wang", type: "sub" },
@@ -200,7 +196,6 @@
             10: { name: "Cabaran Super KSSR", type: "challenge" }
         };
 
-        // Premium Content Stock Product Array
         const productsStock = [
             { id: 1, name: "Epal Merah", price: 2.00, unit: "biji", icon: "🍎", category: "Buah" },
             { id: 2, name: "Pisang Mas", price: 5.00, unit: "sisir", icon: "🍌", category: "Buah" },
@@ -220,7 +215,6 @@
             { id: 16, name: "Minyak Masak", price: 30.00, unit: "botol", icon: "🍾", category: "Asas" }
         ];
 
-        // Confetti Generator System
         const canvas = document.getElementById('confetti');
         const ctx = canvas.getContext('2d');
         let confettiPieces = [];
@@ -265,20 +259,17 @@
             drawConfetti();
         }
 
-        // Dashboard Updates
         function updateDashboardUI() {
             document.getElementById('stat-stars').innerText = gameState.stars;
             document.getElementById('stat-coins').innerText = gameState.coins;
             document.getElementById('stat-score').innerText = gameState.score;
             document.getElementById('stat-level-name').innerText = `${gameState.currentLevel} - ${levelsMeta[gameState.currentLevel].name}`;
             
-            // Progress Calculation
             let basePct = ((gameState.currentLevel - 1) * 10);
             let subPct = ((gameState.subQuestionIndex - 1) / gameState.maxQuestionsPerLevel) * 10;
             document.getElementById('game-progress-bar').style.width = `${Math.min(basePct + subPct, 100)}%`;
         }
 
-        // Init Game Session
         function startGameSession() {
             soundClick();
             const nameInput = document.getElementById('input-student-name').value.trim();
@@ -289,7 +280,6 @@
             gameState.playerName = nameInput;
             document.getElementById('player-display-name').innerText = nameInput;
             
-            // Sync initial profile to Firebase Cloud
             database.ref('players/' + nameInput.replace(/[.#$\[\]]/g, '_')).set({
                 nama: nameInput,
                 skor: 0,
@@ -302,13 +292,11 @@
             generateMission();
         }
 
-        // Mission Builder Engine (Thousands of Combinations)
         function generateMission() {
             updateDashboardUI();
             let levelType = levelsMeta[gameState.currentLevel].type;
             let container = document.getElementById('main-stage');
             
-            // Randomly pull items from pool
             let itemsShuffled = [...productsStock].sort(() => 0.5 - Math.random());
             let itemA = itemsShuffled[0];
             let itemB = itemsShuffled[1];
@@ -318,81 +306,230 @@
             let answersOptions = [];
             let correctAnswer = 0;
 
+            let questionSet = Math.floor(Math.random() * 4) + 1;
+
             switch(levelType) {
                 case "add":
-                    let qtyA = Math.floor(Math.random() * 3) + 1;
-                    let qtyB = Math.floor(Math.random() * 2) + 1;
-                    correctAnswer = (qtyA * itemA.price) + (qtyB * itemB.price);
-                    questionText = `Kira jumlah harga untuk <b>${qtyA} ${itemA.unit} ${itemA.name}</b> dan <b>${qtyB} ${itemB.unit} ${itemB.name}</b>.`;
+                    if (questionSet === 1) {
+                        let qty = Math.floor(Math.random() * 3) + 2;
+                        correctAnswer = qty * itemA.price;
+                        questionText = `Adik ingin membeli <b>${qty} ${itemA.unit} ${itemA.name}</b>. Berapakah jumlah wang yang perlu dibayar?`;
+                    } else if (questionSet === 2) {
+                        correctAnswer = itemA.price + itemB.price;
+                        questionText = `Berapakah jumlah harga gabungan bagi 1 ${itemA.unit} ${itemA.name} dan 1 ${itemB.unit} ${itemB.name}?`;
+                    } else if (questionSet === 3) {
+                        let qtyA = 2, qtyB = 1;
+                        correctAnswer = (qtyA * itemA.price) + (qtyB * itemB.price);
+                        questionText = `Kira bayaran untuk pembelian pukal <b>${qtyA} ${itemA.name}</b> berserta <b>${qtyB} ${itemB.name}</b>.`;
+                    } else {
+                        correctAnswer = itemA.price + itemB.price + itemC.price;
+                        questionText = `Siti memasukkan ${itemA.name}, ${itemB.name}, dan ${itemC.name} ke dalam troli. Kira jumlah harga kesemuanya.`;
+                    }
                     break;
 
                 case "sub":
-                    let budgetSub = 50;
-                    correctAnswer = budgetSub - itemC.price;
-                    questionText = `Anda membayar dengan wang kertas <b>RM${budgetSub}</b> untuk membeli 1 ${itemC.unit} ${itemC.name} (RM${itemC.price.toFixed(2)}). Berapakah baki wang anda?`;
+                    if (questionSet === 1) {
+                        let budget = 20;
+                        correctAnswer = budget - itemA.price;
+                        questionText = `Anda mempunyai wang sebanyak <b>RM${budget}</b> dan membeli 1 ${itemA.name}. Berapakah baki wang anda?`;
+                    } else if (questionSet === 2) {
+                        let budget = 50;
+                        correctAnswer = budget - (itemA.price * 2);
+                        questionText = `Suresh membayar dengan nota <b>RM50</b> untuk membeli 2 ${itemA.unit} ${itemA.name}. Hitung baki wangnya.`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = itemB.price - itemA.price;
+                        if(correctAnswer < 0) { correctAnswer = Math.abs(correctAnswer); let temp = itemA; itemA = itemB; itemB = temp; }
+                        questionText = `Berapakah perbezaan harga antara ${itemB.name} (RM${itemB.price.toFixed(2)}) dan ${itemA.name} (RM${itemA.price.toFixed(2)})?`;
+                    } else {
+                        let budget = 100;
+                        correctAnswer = budget - itemC.price;
+                        questionText = `Ayah memberikan wang <b>RM100</b> kepada juruwang untuk membeli 1 ${itemC.name}. Berapakah baki pulangan?`;
+                    }
                     break;
 
                 case "mul":
-                    let multiplier = Math.floor(Math.random() * 4) + 3;
-                    correctAnswer = itemA.price * multiplier;
-                    questionText = `Ibu ingin membeli sebanyak <b>${multiplier} ${itemA.unit} ${itemA.name}</b>. Berapakah jumlah harga keseluruhan?`;
+                    if (questionSet === 1) {
+                        let mul = Math.floor(Math.random() * 3) + 3;
+                        correctAnswer = itemA.price * mul;
+                        questionText = `Jika 1 ${itemA.unit} ${itemA.name} berharga RM${itemA.price.toFixed(2)}, berapakah kos untuk <b>${mul} ${itemA.unit}</b>?`;
+                    } else if (questionSet === 2) {
+                        correctAnswer = itemB.price * 5;
+                        questionText = `Hitung jumlah harga bagi <b>5 gandaan</b> paket ${itemB.name} yang disusun di atas rak.`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = itemC.price * 2;
+                        questionText = `Kakak membeli sepasang (<b>2 ${itemC.unit}</b>) ${itemC.name}. Berapakah jumlah pendaraban harga tersebut?`;
+                    } else {
+                        let mul = 10;
+                        correctAnswer = itemA.price * mul;
+                        questionText = `Pihak sekolah memesan sebanyak <b>10 ${itemA.unit} ${itemA.name}</b> untuk jamuan. Hitung jumlah harganya.`;
+                    }
                     break;
 
                 case "div":
-                    let groupCount = 2;
-                    let totalDivPrice = itemB.price * groupCount;
-                    correctAnswer = itemB.price;
-                    questionText = `Jumlah harga untuk ${groupCount} paket ${itemB.name} ialah <b>RM${totalDivPrice.toFixed(2)}</b>. Berapakah harga seunit?`;
+                    if (questionSet === 1) {
+                        let groups = 2;
+                        let total = itemB.price * groups;
+                        correctAnswer = itemB.price;
+                        questionText = `Jumlah harga untuk ${groups} paket ${itemB.name} ialah <b>RM${total.toFixed(2)}</b>. Berapakah harga seunit?`;
+                    } else if (questionSet === 2) {
+                        let groups = 3;
+                        let total = itemA.price * groups;
+                        correctAnswer = itemA.price;
+                        questionText = `Kongsi rezeki: 3 orang murid berkongsi membayar <b>RM${total.toFixed(2)}</b> untuk sekeranjang ${itemA.name}. Cari harga bahagian bagi seorang murid.`;
+                    } else if (questionSet === 3) {
+                        let groups = 4;
+                        let total = itemC.price * groups;
+                        correctAnswer = itemC.price;
+                        questionText = `Sebuah kotak besar berisi 4 pek ${itemC.name} berharga <b>RM${total.toFixed(2)}</b>. Berapakah nilai harga bagi satu pek?`;
+                    } else {
+                        let groups = 5;
+                        let total = itemA.price * groups;
+                        correctAnswer = itemA.price;
+                        questionText = `Set kombo keluarga bagi 5 ${itemA.unit} ${itemA.name} berharga <b>RM${total.toFixed(2)}</b>. Berapakah kos asas seunit?`;
+                    }
                     break;
 
                 case "money":
-                    let itemX = itemA;
-                    let itemY = itemB;
-                    correctAnswer = itemX.price + itemY.price;
-                    questionText = `Raju membeli ${itemX.name} (RM${itemX.price.toFixed(2)}) dan ${itemY.name} (RM${itemY.price.toFixed(2)}). Berapakah gabungan nilai wang wang yang diperlukan?`;
+                    if (questionSet === 1) {
+                        correctAnswer = itemA.price + itemB.price;
+                        questionText = `Kira gabungan wang kertas RM yang diperlukan untuk membeli ${itemA.name} dan ${itemB.name}.`;
+                    } else if (questionSet === 2) {
+                        let customTax = 1.00;
+                        correctAnswer = itemC.price + customTax;
+                        questionText = `Harga ${itemC.name} ialah RM${itemC.price.toFixed(2)} dan dikenakan caj beg mesra alam <b>RM1.00</b>. Berapakah jumlah tunai nilai wang?`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = itemA.price + itemC.price;
+                        questionText = `Ibu membayar ${itemA.name} dan ${itemC.name}. Berapakah jumlah wang kertas dan syiling terpaksa diserahkan?`;
+                    } else {
+                        correctAnswer = (itemB.price * 2) + itemA.price;
+                        questionText = `Kira jumlah kombinasi denominasi mata wang RM bagi pembelian dua ${itemB.name} serta satu ${itemA.name}.`;
+                    }
                     break;
 
                 case "fraction":
-                    correctAnswer = itemC.price / 2;
-                    questionText = `Kedai memberikan diskaun separuh harga (<span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">1/2</span>) untuk 1 ${itemC.unit} ${itemC.name} (Asal: RM${itemC.price.toFixed(2)}). Berapakah harga baharu?`;
+                    if (questionSet === 1) {
+                        correctAnswer = itemC.price / 2;
+                        questionText = `Pasar raya menawarkan potongan separuh harga (<span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">1/2</span>) untuk 1 ${itemC.name} (Asal: RM${itemC.price.toFixed(2)}). Berapakah harga baharu?`;
+                    } else if (questionSet === 2) {
+                        correctAnswer = itemA.price * 0.25; 
+                        questionText = `Suku bahagian (<span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">1/4</span>) daripada berat ${itemA.name} telah rosak. Berapakah nilai kerugian wang jika harga penuh RM${itemA.price.toFixed(2)}?`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = itemB.price * 0.75;
+                        questionText = `Anda hanya perlu membayar tiga perempat (<span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">3/4</span>) daripada nilai harga asal ${itemB.name} (RM${itemB.price.toFixed(2)}). Berapakah nilainya?`;
+                    } else {
+                        correctAnswer = itemA.price + (itemB.price / 2);
+                        questionText = `Beli satu ${itemA.name} pada harga penuh and dapatkan ${itemB.name} kedua pada harga pecahan <span class="bg-amber-100 px-1.5 py-0.5 rounded text-amber-700 font-bold">1/2</span>. Berapakah harga keseluruhan?`;
+                    }
                     break;
 
                 case "decimal":
-                    let weight = (Math.random() * 2 + 1.5).toFixed(1);
-                    correctAnswer = itemA.price * parseFloat(weight);
-                    questionText = `Kira kos bagi <b>${weight} kg</b> ${itemA.name} jika harganya ialah RM${itemA.price.toFixed(2)} sekilo.`;
+                    if (questionSet === 1) {
+                        let weight = 1.5;
+                        correctAnswer = itemA.price * weight;
+                        questionText = `Timbang berat: Kira kos bagi <b>1.5 kg</b> ${itemA.name} jika kadar harga sekilo ialah RM${itemA.price.toFixed(2)}.`;
+                    } else if (questionSet === 2) {
+                        let weight = 2.5;
+                        correctAnswer = itemB.price * weight;
+                        questionText = `Mak Cik Timah menimbang <b>2.5 kg</b> ${itemB.name}. Hitung bayaran dalam bentuk perpuluhan ringgit.`;
+                    } else if (questionSet === 3) {
+                        let weight = 0.5;
+                        correctAnswer = itemC.price * weight;
+                        questionText = `Berapakah harga bagi paket mini seberat <b>0.5 kg</b> ${itemC.name} jika harga asal 1 kg ialah RM${itemC.price.toFixed(2)}?`;
+                    } else {
+                        let weight = 1.2;
+                        correctAnswer = itemA.price * weight;
+                        questionText = `Kira nilai perpuluhan bagi pembelian seberat <b>1.2 kg</b> ${itemA.name} di kaunter timbangan digital.`;
+                    }
                     break;
 
                 case "discount":
-                    let pct = 10; 
-                    let discAmount = itemB.price * (pct / 100);
-                    correctAnswer = itemB.price - discAmount;
-                    questionText = `Produk ${itemB.name} berharga RM${itemB.price.toFixed(2)} mendapat potongan diskaun <b>10%</b>. Berapakah harga selepas potongan?`;
+                    if (questionSet === 1) {
+                        let pct = 10;
+                        correctAnswer = itemB.price - (itemB.price * (pct / 100));
+                        questionText = `Jualan Hari Raya! Produk ${itemB.name} mendapat diskaun <b>10%</b>. Berapakah harga selepas potongan?`;
+                    } else if (questionSet === 2) {
+                        let pct = 20;
+                        correctAnswer = itemA.price - (itemA.price * (pct / 100));
+                        questionText = `Kupon istimewa: Potongan sebanyak <b>20%</b> diberikan untuk ${itemA.name}. Berapakah harga jimat yang perlu dibayar?`;
+                    } else if (questionSet === 3) {
+                        let pct = 50;
+                        correctAnswer = itemC.price - (itemC.price * (pct / 100));
+                        questionText = `Runtuhan Harga Gudang! Diskaun hebat sebanyak <b>50%</b> ditawarkan untuk ${itemC.name}. Cari harga runtuh tersebut.`;
+                    } else {
+                        let pct = 5;
+                        correctAnswer = itemB.price - (itemB.price * (pct / 100));
+                        questionText = `Diskaun ahli kad keahlian sebanyak <b>5%</b> diberikan untuk item ${itemB.name}. Sila kira harga selepas diskaun.`;
+                    }
                     break;
 
                 case "mixed":
-                    correctAnswer = (itemA.price * 2) - 3;
-                    questionText = `Beli 2 ${itemA.unit} ${itemA.name} kemudian tolak rebat kupon tunai bernilai <b>RM3.00</b>. Berapakah harga akhir?`;
+                    if (questionSet === 1) {
+                        correctAnswer = (itemA.price * 2) - 3.00;
+                        questionText = `Operasi Bergabung: Beli 2 ${itemA.name} kemudian tolak rebat baucar tunai bernilai <b>RM3.00</b>. Berapakah harga akhir?`;
+                    } else if (questionSet === 2) {
+                        correctAnswer = (itemB.price + itemC.price) * 2;
+                        questionText = `Kira jumlah harga jika anda membeli 2 set kombo yang mengandungi (${itemB.name} + ${itemC.name}) serentak.`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = (10.00 - itemA.price) + itemB.price;
+                        questionText = `Anda ada wang RM10, baki selepas beli ${itemA.name} digunakan untuk menambah pembelian 1 ${itemB.name}. Kira nilai wang akhir anda.`;
+                    } else {
+                        correctAnswer = (itemC.price * 3) - itemA.price;
+                        questionText = `Hitung hasil operasi: Tiga kali ganda harga ${itemC.name} ditolak dengan seunit harga bagi ${itemA.name}.`;
+                    }
                     break;
 
                 case "challenge":
                 default:
-                    correctAnswer = itemA.price + itemB.price + itemC.price;
-                    questionText = `<b>Cabaran Trofi!</b> Berapakah jumlah harga bakul jika anda memasukkan ${itemA.name}, ${itemB.name}, dan ${itemC.name}?`;
+                    if (questionSet === 1) {
+                        correctAnswer = itemA.price + itemB.price + itemC.price;
+                        questionText = `<b>Cabaran Trofi Set A!</b> Berapakah jumlah harga bakul jika anda memasukkan ${itemA.name}, ${itemB.name}, dan ${itemC.name}?`;
+                    } else if (questionSet === 2) {
+                        correctAnswer = (itemA.price * 2) + (itemB.price * 2);
+                        questionText = `<b>Cabaran Trofi Set B!</b> Selesaikan gandaan berganda: Berapakah kos bagi 2 ${itemA.name} dan 2 ${itemB.name}?`;
+                    } else if (questionSet === 3) {
+                        correctAnswer = 100.00 - (itemA.price + itemB.price + itemC.price);
+                        questionText = `<b>Cabaran Trofi Set C!</b> Kira baki daripada wang <b>RM100</b> selepas memborong ketiga-tiga barangan di rak pasar raya.`;
+                    } else {
+                        correctAnswer = (itemC.price * 4) / 2;
+                        questionText = `<b>Cabaran Trofi Set D!</b> Berapakah harga bagi 4 unit ${itemC.name} selepas diberikan potongan diskaun separuh harga keseluruhan?`;
+                    }
                     break;
             }
 
-            // Standardize Answers Formulation
             correctAnswer = parseFloat(parseFloat(correctAnswer).toFixed(2));
             answersOptions.push(correctAnswer);
             
+            // Algoritma Penjanaan Jawapan Palsu Pintar & Logik KSSR
+            let originalSen = (correctAnswer % 1).toFixed(2); // Dapatkan komponen sen asal (e.g. 0.00 atau 0.50)
+            let deviations = [-5.00, -2.00, -1.00, 1.00, 2.00, 5.00, 10.00];
+            
+            if (levelType === "fraction" || levelType === "decimal" || levelType === "discount") {
+                // Untuk tahap perpuluhan/pecahan, benarkan juga gangguan sen suku/separuh yang munasabah
+                deviations.push(-0.50, 0.50, -1.50, 1.50);
+            }
+
             while(answersOptions.length < 4) {
-                let dev = (Math.random() * 6 - 3).toFixed(2);
-                let fakeAns = parseFloat((correctAnswer + parseFloat(dev)).toFixed(2));
+                let randomDev = deviations[Math.floor(Math.random() * deviations.length)];
+                let fakeAns = parseFloat((correctAnswer + randomDev).toFixed(2));
+                
+                // Jika sen asal adalah .00, pastikan jawapan palsu juga berakhir dengan .00 atau .50 yang kemas
+                if (parseFloat(originalSen) === 0 && (fakeAns % 0.5 !== 0)) {
+                    fakeAns = Math.floor(fakeAns); // Jadikan nombor bulat munasabah
+                }
+
                 if(fakeAns > 0 && !answersOptions.includes(fakeAns)) {
                     answersOptions.push(fakeAns);
                 }
             }
+            
+            // Sekiranya senarai masih belum cukup akibat penapisan di atas, isikan secara munasabah
+            while(answersOptions.length < 4) {
+                let fakeAns = parseFloat((correctAnswer + (Math.random() > 0.5 ? 3 : -3)).toFixed(0));
+                if (fakeAns > 0 && !answersOptions.includes(fakeAns)) {
+                    answersOptions.push(fakeAns);
+                }
+            }
+
             answersOptions.sort(() => 0.5 - Math.random());
 
             gameState.currentMission = {
@@ -401,12 +538,11 @@
                 items: [itemA, itemB, itemC]
             };
 
-            // Render Dynamic Interface
             container.innerHTML = `
                 <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                     <div class="md:col-span-2 flex flex-col gap-4">
                         <div class="card-3d rounded-2xl p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-t-8 border-t-blue-500">
-                            <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Misi Pembelian ${gameState.subQuestionIndex}/${gameState.maxQuestionsPerLevel}</span>
+                            <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Misi Pembelian ${gameState.subQuestionIndex}/${gameState.maxQuestionsPerLevel} (Variasi ${questionSet})</span>
                             <h2 class="text-slate-700 font-medium text-lg sm:text-xl mt-3 leading-relaxed">${questionText}</h2>
                         </div>
 
@@ -447,17 +583,14 @@
             `;
         }
 
-        // Action Check System
         function checkAnswer(selectedVal, btnElement) {
             if(selectedVal === gameState.currentMission.correct) {
                 soundCorrect();
                 triggerConfettiBurst();
                 
-                // Rewards Accumulation
                 gameState.score += 10;
                 gameState.coins += 5;
                 
-                // Graphic Feedbacks Overlay
                 btnElement.classList.remove('bg-slate-700', 'border-slate-900');
                 btnElement.classList.add('bg-emerald-500', 'border-emerald-700', 'scale-105');
                 
@@ -476,13 +609,12 @@
                 `;
                 document.body.appendChild(feedbackBanner);
 
-                // Progressive Flow Controller
                 setTimeout(() => {
                     feedbackBanner.remove();
                     gameState.subQuestionIndex++;
                     
                     if(gameState.subQuestionIndex > gameState.maxQuestionsPerLevel) {
-                        gameState.stars++; // Level Completion Reward
+                        gameState.stars++; 
                         gameState.subQuestionIndex = 1;
                         gameState.currentLevel++;
                         
@@ -492,7 +624,6 @@
                         }
                     }
                     
-                    // Live Push to Firebase Database
                     let safeKey = gameState.playerName.replace(/[.#$\[\]]/g, '_');
                     database.ref('players/' + safeKey).update({
                         skor: gameState.score,
